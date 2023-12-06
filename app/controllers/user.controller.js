@@ -1,7 +1,33 @@
 const db = require("../models");
 const User = db.users;
+const Captcha = db.captcha;
 const bcrypt = require('bcryptjs');
 const Op = db.Sequelize.Op;
+
+exports.sendCaptcha = (req, res) => {
+    // Validate request
+    if (!req.body.email) {
+        res.status(400).send({
+            message: "email不能为空!"
+        });
+        return;
+    }
+
+    var code = Math.random().toString(10).slice(-6);
+
+    Captcha.create({
+            code: code,
+            email: req.body.email
+        })
+        .then(data => {
+            res.send(data);
+        })
+        .catch(err => {
+            res.status(500).send({
+                message: err.message || "Some error occurred."
+            });
+        });
+};
 
 // Create and Save a new User
 exports.create = (req, res) => {
