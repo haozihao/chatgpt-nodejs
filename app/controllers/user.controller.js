@@ -3,7 +3,7 @@ const User = db.users;
 const bcrypt = require('bcryptjs');
 const Op = db.Sequelize.Op;
 
-// Create and Save a new Tutorial
+// Create and Save a new User
 exports.create = (req, res) => {
     // Validate request
     if (!req.body.username || !req.body.password) {
@@ -13,13 +13,27 @@ exports.create = (req, res) => {
         return;
     }
 
-    // Create a Tutorial
+    //Check user is exist or not
+    User.findAll({
+        where: {
+            username: req.body.username
+        }
+    }).then(data => {
+        if (data.length > 0) {
+            res.status(400).send({
+                message: "该用户已注册，请登录使用!"
+            });
+        }
+        return;
+    })
+
+    // Create a user
     const user = {
         username: req.body.username,
         password: bcrypt.hashSync(req.body.password, 10),
     };
 
-    // Save Tutorial in the database
+    // Save User in the database
     User.create(user)
         .then(data => {
             res.send(data);
@@ -39,7 +53,7 @@ exports.checkUser = (req, res) => {
         });
         return;
     }
-    // Create a Tutorial
+    // Create a User
     const user = {
         username: req.body.username,
         password: req.body.password,
@@ -70,7 +84,7 @@ exports.checkUser = (req, res) => {
         })
         .catch(err => {
             res.status(500).send({
-                message: err.message || "Some error occurred while retrieving tutorials."
+                message: err.message || "Some error occurred while retrieving user."
             });
         });
 };
