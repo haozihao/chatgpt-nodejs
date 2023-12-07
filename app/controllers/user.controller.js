@@ -1,26 +1,61 @@
 const db = require("../models");
 const User = db.users;
 const Captcha = db.captcha;
+const Email = require("../services/email")
 const bcrypt = require('bcryptjs');
 const Op = db.Sequelize.Op;
 
-exports.sendCaptcha = (req, res) => {
+exports.sendCaptcha = async (req, res) => {
     // Validate request
     if (!req.body.email) {
-        res.status(400).send({
+        res.send({
+            result: false,
             message: "email不能为空!"
+        });
+        return;
+    }
+
+    const captchaData = await Captcha.findOne({
+        where: {
+            [Op.and]: [{
+                    email: req.body.email
+                },
+                {
+                    createdAt: {
+                        [Op.gt]: new Date(new Date() - 2 * 60 * 1000)
+                    }
+                }
+            ]
+
+        },
+        order: [
+            ['createdAt', 'DESC']
+        ],
+
+    })
+
+    if (captchaData) {
+        res.send({
+            result: false,
+            message: "已发送过验证码，请两分钟后重试!"
         });
         return;
     }
 
     var code = Math.random().toString(10).slice(-6);
 
+    Email.sendMail(code, req.body.email)
+
     Captcha.create({
             code: code,
             email: req.body.email
         })
         .then(data => {
-            res.send(data);
+            // res.send(data);
+            res.send({
+                result: true,
+                message: "验证码发送成功!"
+            });
         })
         .catch(err => {
             res.status(500).send({
@@ -30,28 +65,65 @@ exports.sendCaptcha = (req, res) => {
 };
 
 // Create and Save a new User
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
     // Validate request
     if (!req.body.username || !req.body.password) {
-        res.status(400).send({
+        res.send({
+            result: false,
             message: "username和password不能为空!"
         });
         return;
     }
 
+    if (!req.body.code) {
+        res.send({
+            result: false,
+            message: "验证码不能为空!"
+        });
+        return;
+    }
+
+    const captchaData = await Captcha.findOne({
+        where: {
+            [Op.and]: [{
+                    email: req.body.username
+                },
+                {
+                    createdAt: {
+                        [Op.gt]: new Date(new Date() - 2 * 60 * 1000)
+                    }
+                }
+            ]
+
+        },
+        order: [
+            ['createdAt', 'DESC']
+        ],
+
+    })
+    if (!captchaData || captchaData.code !== req.body.code) {
+        res.send({
+            result: false,
+            message: "验证码不正确或已过期!"
+        });
+        return;
+    }
+
+
     //Check user is exist or not
-    User.findAll({
+    const userData = await User.findAll({
         where: {
             username: req.body.username
         }
-    }).then(data => {
-        if (data.length > 0) {
-            res.status(400).send({
-                message: "该用户已注册，请登录使用!"
-            });
-        }
-        return;
     })
+    if (userData.length > 0) {
+        res.send({
+            result: false,
+            message: "该邮箱已注册，请登录使用!"
+        });
+        return;
+    }
+
 
     // Create a user
     const user = {
@@ -62,7 +134,11 @@ exports.create = (req, res) => {
     // Save User in the database
     User.create(user)
         .then(data => {
-            res.send(data);
+            res.send({
+                result: true,
+                message: "用户注册成功!",
+                user: data
+            });
         })
         .catch(err => {
             res.status(500).send({
