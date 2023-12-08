@@ -171,22 +171,29 @@ exports.checkUser = (req, res) => {
             if (data.length > 0) {
                 const cUser = data[0]
                 if (bcrypt.compareSync(user.password, cUser.password)) {
+                    // 验证通过清除登录失败次数记录
+                    rate.getLoginFailuresStore().resetKey(user.username);
                     res.json({
                         result: true
                     })
-                    rate.getLoginFailuresStore().resetKey(user.username);
                 } else {
+                    // 验证不通过时，清除提问次数记录
+                    rate.getRequestStore().resetKey(user.username);
                     res.json({
                         result: false
                     })
                 }
             } else {
+                // 验证不通过时，清除提问次数记录
+                rate.getRequestStore().resetKey(user.username);
                 res.json({
                     result: false
                 })
             }
         })
         .catch(err => {
+            // 验证不通过时，清除提问次数记录
+            rate.getRequestStore().resetKey(user.username);
             res.status(500).send({
                 message: err.message || "Some error occurred while retrieving user."
             });
