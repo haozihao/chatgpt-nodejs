@@ -4,6 +4,7 @@ const Captcha = db.captcha;
 const Email = require("../services/email")
 const bcrypt = require('bcryptjs');
 const Op = db.Sequelize.Op;
+const rate = require("../core/rate.js");
 
 exports.sendCaptcha = async (req, res) => {
     // Validate request
@@ -173,6 +174,7 @@ exports.checkUser = (req, res) => {
                     res.json({
                         result: true
                     })
+                    rate.getLoginFailuresStore().resetKey(user.username);
                 } else {
                     res.json({
                         result: false
