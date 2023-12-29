@@ -58,7 +58,7 @@ const requestLimiter = rateLimit({
     })
     if (user) {
       // 用户memberFlag为true时，访问次数为10（由于一次提问会请求两次，所以实际上是允许5次），否则为2
-      max = user.memberFlag ? 10 : 2
+      max = user.memberFlag ? 9999 : 2
     } else {
       max = 2
     }
