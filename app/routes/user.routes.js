@@ -8,7 +8,9 @@ module.exports = app => {
 
   router.post("/addUser", user.create);
 
-  router.post("/checkUser", rate.getLoginLimiter(), rate.getRequestLimiter(), user.checkUser);
+  router.post("/bcryptPwd", user.bcryptPwd);
+
+  router.post("/checkUser", rate.getLoginLimiter(), user.checkUser);
 
 
   app.use('/api/users', router);

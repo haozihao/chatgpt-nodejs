@@ -12,6 +12,10 @@ module.exports = (sequelize, Sequelize) => {
         delFlag: {
             type: Sequelize.BOOLEAN
         },
+        useAcount: {
+            type: Sequelize.INTEGER,
+            defaultValue: 0
+        },
         memberFlag: {
             type: Sequelize.BOOLEAN,
             defaultValue: false
