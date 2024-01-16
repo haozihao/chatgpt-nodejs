@@ -1,4 +1,13 @@
-const secretService = require("../services/secretKeySign");
+const textFilter = require("../services/textFilter/ToolGood.Words.WordsSearch");
+const fs = require('fs');
+const path = require('path');
+
+//读取敏感词库
+const filePath = path.join(__dirname, '..', 'public', 'sensitive_words.txt');
+const data = fs.readFileSync(filePath, 'utf8');
+//初始化文本检测对象
+const search = new textFilter.WordsSearch(); 
+search.SetKeywords(data.split("、"));
 
 exports.auditText = async (req, res) => {
   try {
@@ -11,53 +20,25 @@ exports.auditText = async (req, res) => {
     }
     //待审核文本
     const content = req.body.content;
-    //固定参数
-    const tenantId = "07";
-    const businessId = "070001";
-    const secretId = "zlqyt";
-    const secretKey = "zlqyt";
-    //校验参数
-    const params = {
-      secretId: secretId,
-      nonce: 110,
-      timestamp: Date.now(),
-    };
-    //sha256加密
-    const signature = secretService.secretKeySign(params, secretKey);
-    params.signature = signature;
 
-    //发生请求参数
-    const data = {
-      content: content,
-      tenantId: tenantId,
-      businessId: businessId,
-      params: params,
-    };
+    // 检查是否有匹配
+    var isContain = search.ContainsAny(content);
 
-    const result = await fetch(
-      "https://saas.htsc.com.cn:1462/passport/audit/text",
-      {
-        body: JSON.stringify(data),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      }
-    );
-    const resJson = await result.json();
-    if (resJson.data.results[0].suggestion === "Pass") {
-      res.send({
-        result: true,
-        message: "审核通过",
-        data: resJson,
-      });
-    } else {
+    if (isContain) {
+      // 查找所有匹配
+      var all = search.FindAll(content);
       res.send({
         result: false,
         message: "审核不通过",
-        data: resJson,
+        data: all,
+      });
+    } else {
+      res.send({
+        result: true,
+        message: "审核通过",
       });
     }
+
   } catch (error) {
     console.error(error);
     res.send({
